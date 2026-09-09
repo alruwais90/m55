@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f7f8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="حاسبة الإيجارات">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <title>حاسبة الإيجارات</title>
+  <style>
+    :root{
+      --bg:#f7f7f8; --card:#fff; --text:#171717; --muted:#777;
+      --border:#dedede; --green:#16803d; --red:#b42318;
+      --tax-bg:#fff4e6; --tax-border:#f0ad58; --tax-text:#a95b05;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;background:var(--bg);color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,Arial,sans-serif
+    }
+    .wrap{
+      max-width:520px;margin:0 auto;
+      padding:calc(10px + env(safe-area-inset-top)) 10px calc(18px + env(safe-area-inset-bottom))
+    }
+    .top-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+    .label{font-size:13px;margin:0 0 4px;color:#333}
+    input{
+      width:100%;border:1px solid var(--border);background:var(--card);
+      border-radius:12px;padding:11px 10px;font-size:16px;outline:none
+    }
+    input[type='number']{direction:ltr;text-align:left;unicode-bidi:plaintext}
+    input:focus{border-color:#777}
+    .value{direction:ltr;
+      unicode-bidi:plaintext;
+      border:1px solid var(--border);background:var(--card);
+      border-radius:12px;padding:11px 10px;font-size:18px;font-weight:700;
+      text-align:left;min-height:44px
+    }
+    .positive{color:var(--green)} .negative{color:var(--red)}
+    .eight-wrap{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:-2px 0 8px}
+    .eight-result{direction:ltr;
+      unicode-bidi:plaintext;
+      display:flex;align-items:center;justify-content:flex-start;
+      min-height:38px;padding:7px 10px;border:1px solid var(--border);
+      border-radius:10px;background:var(--card);font-size:16px;font-weight:700;text-align:left
+    }
+    .eight-empty{min-height:38px}
+    .head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:12px 0 7px}
+    .head strong{font-size:15px}
+    .hint{font-size:11px;color:var(--muted);text-align:left}
+    .rows{display:flex;flex-direction:column;gap:6px}
+    .row{
+      display:grid;grid-template-columns:38px minmax(0,1fr) minmax(105px,.78fr) 42px;
+      gap:6px;align-items:center;border-radius:14px;padding:2px;transition:background .12s,border-color .12s;
+      border:1px solid transparent
+    }
+    .row.tax-on{background:var(--tax-bg);border-color:transparent}
+    .row.share-on{outline:2px solid #4b5563;outline-offset:-2px}
+    .row.share-on .rownum{background:#e5e7eb;color:#111;font-weight:800}
+    .row.tax-on input{background:var(--tax-bg);border-color:var(--tax-border)}
+    .row.tax-on .rownum{color:var(--tax-text);font-weight:700}
+    .rownum,.vat{
+      min-height:42px;border-radius:10px;border:1px solid transparent;
+      background:transparent;font-size:14px;color:var(--muted);touch-action:manipulation
+    }
+    .vat{border-color:var(--border);background:var(--card);font-size:18px;color:var(--text)}
+    .row.tax-on .vat{background:var(--tax-bg);border-color:var(--tax-border);color:var(--tax-text);font-weight:800}
+    .rownum.holding{background:#eee;border-color:#bbb}
+    .msg{font-size:11px;color:var(--muted);padding:9px 2px 0}
+    .share{
+      width:100%;margin-top:14px;min-height:46px;border:1px solid var(--border);border-radius:12px;
+      background:var(--card);font-size:16px;font-weight:700
+    }
+    @media(max-width:360px){
+      .row{grid-template-columns:34px minmax(0,1fr) 98px 40px;gap:5px}
+      input{padding:10px 8px}
+    }
+    @media print{
+      body{background:#fff}
+      .wrap{max-width:none;padding:0}
+      .rows,.head,.msg,.share{display:none!important}
+      .print-report{display:block!important}
+    }
+    .print-report{display:none}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="top-grid">
+      <label>
+        <div class="label">الإجمالي</div>
+        <input id="mainTotal" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
+      </label>
+      <div>
+        <div class="label">إجمالي الإيجارات</div>
+        <div id="rentTotal" class="value">0.00</div>
+      </div>
+    </section>
+
+    <section class="top-grid">
+      <div>
+        <div class="label">المتبقي</div>
+        <div id="remainder" class="value">0.00</div>
+      </div>
+      <div>
+        <div class="label">الضريبة 15٪</div>
+        <div id="vatTotal" class="value">0.00</div>
+      </div>
+    </section>
+
+    <section class="top-grid">
+      <div>
+        <div class="label">&nbsp;</div>
+        <div id="combinedResult" class="eight-result">0.00</div>
+      </div>
+      <div>
+        <div class="label">&nbsp;</div>
+        <div id="eightResult" class="eight-result">0.00</div>
+      </div>
+    </section>
+
+    <div class="head">
+      <strong>الإدخالات</strong>
+      <div class="hint">٪ للضريبة • اضغط رقم الصف لتحديده للـPDF • ضغط مطوّل للمسح</div>
+    </div>
+
+    <section id="rows" class="rows"></section>
+
+    <button id="sharePdf" type="button" class="share">PDF / مشاركة المحدد</button>
+    <div id="msg" class="msg">يتم حفظ البيانات تلقائيًا على هذا الجهاز.</div>
+
+    <section id="printReport" class="print-report"></section>
+  </main>
+
+<script>
+(() => {
+  const KEY='rentCalcV9';
+  const PREFILL={"30": {"desc": "المروج3 امجد", "amount": 4250, "vat": false}, "29": {"desc": "الشفا14 هند", "amount": 14500, "vat": false}, "28": {"desc": "المروج6 محمد", "amount": 4000, "vat": false}, "27": {"desc": "المروج7 حنوره", "amount": 4000, "vat": false}, "26": {"desc": "رمضان عقد باسكن", "amount": 0, "vat": false}, "25": {"desc": "الورش1250 عقود", "amount": 0, "vat": false}, "24": {"desc": "ورش2 ابراج", "amount": 30000, "vat": true}, "23": {"desc": "الشفا12 علاء", "amount": 29000, "vat": false}, "22": {"desc": "رمضان4800 قديم", "amount": 0, "vat": false}, "21": {"desc": "حسن عقد1000", "amount": 0, "vat": false}, "20": {"desc": "رمضان باسكن9000", "amount": 0, "vat": false}, "19": {"desc": "ورش9 روز", "amount": 30000, "vat": true}, "18": {"desc": "ورش7 فلاورز", "amount": 32500, "vat": true}, "17": {"desc": "ورش3 الهويشل", "amount": 30000, "vat": true}, "16": {"desc": "ورش8 القنوات", "amount": 42500, "vat": true}, "15": {"desc": "ورش13 الضاحية", "amount": 21250, "vat": true}, "14": {"desc": "ورش10 تفاعل", "amount": 70000, "vat": true}, "13": {"desc": "ورش11 الدوسري", "amount": 15000, "vat": true}, "12": {"desc": "ورش10 الحويطي", "amount": 30000, "vat": true}, "11": {"desc": "ورش21 ماركيز", "amount": 75000, "vat": true}, "10": {"desc": "بلال مخرج24", "amount": 48000, "vat": false}, "9": {"desc": "الشفا7 انشاد", "amount": 10500, "vat": false}, "8": {"desc": "الشفا10 حمادة", "amount": 5000, "vat": false}, "7": {"desc": "ورش6 التاج", "amount": 30000, "vat": true}, "6": {"desc": "ورش15 سميحة", "amount": 30000, "vat": true}, "5": {"desc": "المروج7 حنوره", "amount": 4000, "vat": false}, "4": {"desc": "المروج6 محمد", "amount": 4000, "vat": false}, "3": {"desc": "الجوهري ع3", "amount": 140000, "vat": false}, "2": {"desc": "الراشد ص13", "amount": 360000, "vat": false}, "1": {"desc": "بلال مخرج24", "amount": 62500, "vat": false}};
+  const rowsHost=document.getElementById('rows');
+  const mainTotal=document.getElementById('mainTotal');
+  const combinedResult=document.getElementById('combinedResult');
+  const rentTotal=document.getElementById('rentTotal');
+  const remainder=document.getElementById('remainder');
+  const vatTotal=document.getElementById('vatTotal');
+  const eightResult=document.getElementById('eightResult');
+  const msg=document.getElementById('msg');
+  const printReport=document.getElementById('printReport');
+
+  const safeNumber=v=>{
+    const n=Number.parseFloat(v);
+    return Number.isFinite(n)&&n>=0?n:0;
+  };
+  const fmt=n=>new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+
+  for(let i=60;i>=1;i--){
+    const row=document.createElement('div');
+    row.className='row';
+    row.dataset.row=String(i);
+    row.dataset.vat='0';
+    row.dataset.share='0';
+    row.innerHTML=`
+      <button type="button" class="rownum" aria-label="اضغط مطولًا لمسح الصف ${i}">${i}</button>
+      <input class="desc" type="text" placeholder="التعريف" aria-label="تعريف الصف ${i}">
+      <input class="amount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" aria-label="مبلغ الصف ${i}">
+      <button type="button" class="vat" aria-pressed="false" aria-label="ضريبة الصف ${i}">٪</button>`;
+    rowsHost.appendChild(row);
+  }
+
+  function snapshot(){
+    return {
+      mainTotal:mainTotal.value,
+      rows:[...rowsHost.children].map(row=>({
+        row:row.dataset.row,
+        desc:row.querySelector('.desc').value,
+        amount:row.querySelector('.amount').value,
+        vat:row.dataset.vat==='1'
+      }))
+    };
+  }
+  function save(){
+    try{localStorage.setItem(KEY,JSON.stringify(snapshot()))}catch(e){}
+  }
+  function load(){
+    try{
+      const raw=localStorage.getItem(KEY);
+      if(raw){
+        const data=JSON.parse(raw);
+        mainTotal.value=data.mainTotal||'';
+        const byRow=new Map((data.rows||[]).map(x=>[String(x.row),x]));
+        [...rowsHost.children].forEach(row=>{
+          const d=byRow.get(row.dataset.row);
+          if(!d)return;
+          row.querySelector('.desc').value=d.desc||'';
+          row.querySelector('.amount').value=d.amount||'';
+          row.dataset.vat=d.vat?'1':'0';
+          row.classList.toggle('tax-on',!!d.vat);
+          row.querySelector('.vat').setAttribute('aria-pressed',d.vat?'true':'false');
+        });
+        return;
+      }
+
+      // First opening: populate from the user's screenshots.
+      mainTotal.value='1407600';
+      [...rowsHost.children].forEach(row=>{
+        const d=PREFILL[row.dataset.row];
+        if(!d)return;
+        row.querySelector('.desc').value=d.desc||'';
+        row.querySelector('.amount').value=d.amount ? String(d.amount) : '';
+        row.dataset.vat=d.vat?'1':'0';
+        row.classList.toggle('tax-on',!!d.vat);
+        row.querySelector('.vat').setAttribute('aria-pressed',d.vat?'true':'false');
+      });
+    }catch(e){}
+  }
+
+  function recalc(){
+    let rents=0,vat=0;
+    [...rowsHost.children].forEach(row=>{
+      const amount=safeNumber(row.querySelector('.amount').value);
+      rents+=amount;
+      if(row.dataset.vat==='1')vat+=amount*0.15;
+    });
+    const total=safeNumber(mainTotal.value);
+    const diff=total-rents-vat;
+    const eight=rents*0.08;
+    const combined=diff+eight;
+
+    rentTotal.textContent=fmt(rents);
+    vatTotal.textContent=fmt(vat);
+    remainder.textContent=fmt(diff);
+    eightResult.textContent=fmt(eight);
+    combinedResult.textContent=fmt(combined);
+
+    remainder.classList.remove('positive','negative');
+    if(diff>0)remainder.classList.add('positive');
+    if(diff<0)remainder.classList.add('negative');
+    save();
+  }
+
+  function clearRow(row){
+    row.querySelector('.desc').value='';
+    row.querySelector('.amount').value='';
+    row.dataset.vat='0';
+    row.dataset.share='0';
+    row.classList.remove('tax-on','share-on');
+    row.querySelector('.vat').setAttribute('aria-pressed','false');
+    recalc();
+    msg.textContent=`تم مسح الصف ${row.dataset.row}.`;
+    setTimeout(()=>msg.textContent='يتم حفظ البيانات تلقائيًا على هذا الجهاز.',1800);
+  }
+
+  mainTotal.addEventListener('input',recalc);
+  rowsHost.addEventListener('input',e=>{
+    if(e.target.matches('.desc,.amount'))recalc();
+  });
+
+  rowsHost.addEventListener('click',e=>{
+    const b=e.target.closest('.vat');
+    if(!b)return;
+    const row=b.closest('.row');
+    const on=row.dataset.vat!=='1';
+    row.dataset.vat=on?'1':'0';
+    row.classList.toggle('tax-on',on);
+    b.setAttribute('aria-pressed',on?'true':'false');
+    recalc();
+  });
+
+  let timer=null,active=null,triggered=false;
+  const cancel=()=>{
+    if(timer)clearTimeout(timer);
+    timer=null;
+    if(active)active.classList.remove('holding');
+    active=null;
+  };
+  rowsHost.addEventListener('pointerdown',e=>{
+    const b=e.target.closest('.rownum');
+    if(!b)return;
+    cancel();
+    triggered=false;
+    active=b;
+    b.classList.add('holding');
+    timer=setTimeout(()=>{
+      clearRow(b.closest('.row'));
+      triggered=true;
+      cancel();
+    },700);
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(t=>rowsHost.addEventListener(t,cancel));
+  rowsHost.addEventListener('click',e=>{
+    const b=e.target.closest('.rownum');
+    if(!b)return;
+    if(triggered){
+      triggered=false;
+      return;
+    }
+    const row=b.closest('.row');
+    const on=row.dataset.share!=='1';
+    row.dataset.share=on?'1':'0';
+    row.classList.toggle('share-on',on);
+    msg.textContent=on ? `تم تحديد الصف ${row.dataset.row} للمشاركة.` : `تم إلغاء تحديد الصف ${row.dataset.row}.`;
+  });
+
+  function makeReport(){
+    const all=[...rowsHost.children].map(row=>({
+      n:row.dataset.row,
+      desc:row.querySelector('.desc').value.trim(),
+      amount:safeNumber(row.querySelector('.amount').value),
+      vat:row.dataset.vat==='1',
+      share:row.dataset.share==='1'
+    })).filter(x=>x.desc||x.amount>0);
+
+    const selected=all.filter(x=>x.share);
+    const items=selected.length ? selected : all;
+
+    const reportTotal=items.reduce((sum,x)=>sum+x.amount,0);
+    const reportVat=items.reduce((sum,x)=>sum+(x.vat ? x.amount*0.15 : 0),0);
+
+    const today=new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date());
+    printReport.innerHTML=`
+      <div dir="rtl" style="font-family:Arial,Tahoma,sans-serif;padding:18px;color:#111">
+        <h2 style="margin:0 0 6px">حاسبة الإيجارات</h2>
+        <div style="font-size:12px;color:#666;margin-bottom:4px">${today}</div>
+        <div style="font-size:12px;color:#666;margin-bottom:16px">${selected.length ? 'الصفوف المحددة فقط' : 'جميع الصفوف التي تحتوي بيانات'}</div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px">
+          <tr><td style="padding:6px;border:1px solid #bbb">الإجمالي</td><td style="padding:6px;border:1px solid #bbb">${fmt(reportTotal)}</td></tr>
+          <tr><td style="padding:6px;border:1px solid #bbb">الضريبة 15٪</td><td style="padding:6px;border:1px solid #bbb">${fmt(reportVat)}</td></tr>
+        </table>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr>
+            <th style="padding:6px;border:1px solid #bbb">#</th>
+            <th style="padding:6px;border:1px solid #bbb">التعريف</th>
+            <th style="padding:6px;border:1px solid #bbb">المبلغ</th>
+            <th style="padding:6px;border:1px solid #bbb">15٪</th>
+          </tr></thead>
+          <tbody>
+            ${items.map(x=>`<tr>
+              <td style="padding:6px;border:1px solid #bbb">${x.n}</td>
+              <td style="padding:6px;border:1px solid #bbb">${x.desc.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</td>
+              <td style="padding:6px;border:1px solid #bbb">${fmt(x.amount)}</td>
+              <td style="padding:6px;border:1px solid #bbb">${x.vat?'نعم':''}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  document.getElementById('sharePdf').addEventListener('click',()=>{
+    makeReport();
+    msg.textContent='ستفتح نافذة الطباعة؛ من الآيفون اختر مشاركة ثم حفظ أو إرسال PDF.';
+    setTimeout(()=>window.print(),100);
+  });
+
+  load();
+  recalc();
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  }
+})();
+</script>
+</body>
+</html>
