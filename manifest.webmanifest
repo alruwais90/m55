@@ -1,15 +1,10 @@
 {
-  "id": "./",
-  "name": "الكمال",
-  "short_name": "الكمال",
-  "description": "حاسبة الكمال للإيجارات",
-  "lang": "ar",
-  "dir": "rtl",
+  "name": "مصاريف المنزل",
+  "short_name": "المصاريف",
   "start_url": "./",
-  "scope": "./",
   "display": "standalone",
-  "background_color": "#f7f7f8",
-  "theme_color": "#f7f7f8",
+  "background_color": "#f4f7f7",
+  "theme_color": "#0f766e",
   "icons": [
     {
       "src": "icon-180.png",
